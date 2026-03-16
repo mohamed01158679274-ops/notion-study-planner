@@ -1,6 +1,4 @@
-
 const notionToken = process.env.NOTION_TOKEN;
-
 
 const lecturesDB = "5cd59d50c75e4d3cbf77193d369b1690";
 const sectionsDB = "611b4b8e5676473a87cad7e146664e20";
