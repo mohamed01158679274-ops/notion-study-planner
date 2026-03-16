@@ -1,3 +1,5 @@
+export default async function handler(req, res) {
+
 const notionToken = process.env.NOTION_TOKEN;
 
 const lecturesDB = "5cd59d50c75e4d3cbf77193d369b1690";
@@ -39,73 +41,6 @@ function pickRandom(array, count) {
 
   const shuffled = [...array].sort(() => 0.5 - Math.random());
   return shuffled.slice(0, count);
-}
-
-async function updateStatus(pageID) {
-
-  await fetch(`https://api.notion.com/v1/pages/${pageID}`, {
-    method: "PATCH",
-    headers: {
-      Authorization: `Bearer ${notionToken}`,
-      "Content-Type": "application/json",
-      "Notion-Version": "2022-06-28"
-    },
-    body: JSON.stringify({
-      properties: {
-        "Status": {
-          select: { name: "Done" }
-        }
-      }
-    })
-  });
-
-}
-
-async function syncCompletedTasks() {
-
-  const response = await fetch(
-    `https://api.notion.com/v1/databases/${tasksDB}/query`,
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${notionToken}`,
-        "Content-Type": "application/json",
-        "Notion-Version": "2022-06-28"
-      },
-      body: JSON.stringify({
-        filter: {
-          property: "Status",
-          select: { equals: "Done" }
-        }
-      })
-    }
-  );
-
-  const data = await response.json();
-
-  const usedLectures = new Set();
-  const usedSections = new Set();
-
-  for (const task of data.results || []) {
-
-    const lectures =
-      task.properties["Related Lecture"]?.relation || [];
-
-    const sections =
-      task.properties["Related Section"]?.relation || [];
-
-    for (const l of lectures) {
-      await updateStatus(l.id);
-      usedLectures.add(l.id);
-    }
-
-    for (const s of sections) {
-      await updateStatus(s.id);
-      usedSections.add(s.id);
-    }
-  }
-
-  return { usedLectures, usedSections };
 }
 
 async function addLectureTask(title, lectureID) {
@@ -194,41 +129,26 @@ async function addSectionTask(title, sectionID) {
 
 }
 
-async function run() {
+const lectures = await queryDatabase(lecturesDB);
+const sections = await queryDatabase(sectionsDB);
 
-  const { usedLectures, usedSections } =
-    await syncCompletedTasks();
+const selectedLectures = pickRandom(lectures, 2);
+const selectedSection = pickRandom(sections, 1);
 
-  const lectures = await queryDatabase(lecturesDB);
-  const sections = await queryDatabase(sectionsDB);
+for (const lecture of selectedLectures) {
 
-  const availableLectures =
-    lectures.filter(l => !usedLectures.has(l.id));
-
-  const availableSections =
-    sections.filter(s => !usedSections.has(s.id));
-
-  const selectedLectures = pickRandom(availableLectures, 2);
-  const selectedSection = pickRandom(availableSections, 1);
-
-  for (const lecture of selectedLectures) {
-
-    const title = getTitle(lecture);
-
-    await addLectureTask(title, lecture.id);
-
-    console.log("Lecture added:", title);
-  }
-
-  for (const section of selectedSection) {
-
-    const title = getTitle(section);
-
-    await addSectionTask(title, section.id);
-
-    console.log("Section added:", title);
-  }
+  const title = getTitle(lecture);
+  await addLectureTask(title, lecture.id);
 
 }
 
-run();
+for (const section of selectedSection) {
+
+  const title = getTitle(section);
+  await addSectionTask(title, section.id);
+
+}
+
+res.status(200).json({ status: "tasks created" });
+
+}
