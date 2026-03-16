@@ -5,7 +5,7 @@ const notionToken = process.env.NOTION_TOKEN;
 const lecturesDB = "5cd59d50c75e4d3cbf77193d369b1690";
 const sectionsDB = "611b4b8e5676473a87cad7e146664e20";
 const tasksDB = "7f9b8a2d62fa83ed851981100f5f0555";
-const smartDB = "880b8a2d62fa8362afcb011feb6e75a8";
+const smartDB = "d54b8a2d62fa83f0b72f01ea7716da08";
 
 function today(){
  return new Date().toISOString().split("T")[0];
